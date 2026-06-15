@@ -1,8 +1,11 @@
 """
-BoxSlash Stat Tracker jut like valorant balorant
+BoxSlash Stat Tracker — REST API
 
-Run with: uvicorn main:app --reload --port 8000
+Run locally:  uvicorn main:app --reload --port 8000
+Run online:   uvicorn main:app --host 0.0.0.0 --port $PORT
 """
+
+import os
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,10 +19,17 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# I really need to study more about CORS and how to set it up properly, but for now this will do for local development with Vite.
+# Local dev + your live frontend URL (set ALLOWED_ORIGINS when deploying)
+default_origins = "http://localhost:5173,http://127.0.0.1:5173"
+allowed_origins = [
+    origin.strip()
+    for origin in os.getenv("ALLOWED_ORIGINS", default_origins).split(",")
+    if origin.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

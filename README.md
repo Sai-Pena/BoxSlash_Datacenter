@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # BoxSlash Stat Tracker
 
 A simple stat tracker website for your Roblox game **BoxSlash**. It has a Python REST API backend and a React frontend.
@@ -227,3 +228,7 @@ You can change this in `backend/database.py` in the `_leaderboard_sort_key` func
 ## License
 
 Personal project for BoxSlash game development and statistics.
+=======
+# BoxSlash_Datacenter
+You have a box.... then you SLASH it!
+>>>>>>> 926233907284a7cbc06b0f895cebcae7a97718d2
