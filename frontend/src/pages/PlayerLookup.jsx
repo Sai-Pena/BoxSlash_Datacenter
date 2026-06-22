@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { getPlayer, syncPlayer } from '../api'
+import { getPlayer } from '../api'
 
 function StatBox({ label, value, highlight }) {
   return (
@@ -26,9 +26,7 @@ export default function PlayerLookup() {
   const [username, setUsername] = useState(searchParams.get('user') || '')
   const [player, setPlayer] = useState(null)
   const [loading, setLoading] = useState(false)
-  const [syncing, setSyncing] = useState(false)
   const [error, setError] = useState('')
-  const [message, setMessage] = useState('')
 
   async function search(name) {
     const query = (name || username).trim()
@@ -36,7 +34,6 @@ export default function PlayerLookup() {
 
     setLoading(true)
     setError('')
-    setMessage('')
     setPlayer(null)
 
     try {
@@ -47,23 +44,6 @@ export default function PlayerLookup() {
       setError(err.message)
     } finally {
       setLoading(false)
-    }
-  }
-
-  async function handleSync() {
-    if (!player) return
-    setSyncing(true)
-    setError('')
-    setMessage('')
-
-    try {
-      const data = await syncPlayer(player.username)
-      setPlayer(data.player)
-      setMessage(data.message)
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setSyncing(false)
     }
   }
 
@@ -86,7 +66,7 @@ export default function PlayerLookup() {
     <div className="page">
       <h1>Player Lookup</h1>
       <p className="page-desc">
-        Search by Roblox username to see kill and death stats. Try &quot;roblox&quot; or &quot;a2onlineq&quot;.
+        Search by Roblox username. Stats load live from your game&apos;s PlayerStore. Try &quot;a2onlineq&quot;.
       </p>
 
       <form className="search-form" onSubmit={handleSubmit}>
@@ -97,12 +77,11 @@ export default function PlayerLookup() {
           onChange={(e) => setUsername(e.target.value)}
         />
         <button type="submit" className="btn btn-primary" disabled={loading}>
-          {loading ? 'Searching...' : 'Search'}
+          {loading ? 'Loading from Roblox...' : 'Search'}
         </button>
       </form>
 
       {error && <p className="status error">{error}</p>}
-      {message && <p className="status success">{message}</p>}
 
       {player && (
         <div className="player-card">
@@ -116,16 +95,6 @@ export default function PlayerLookup() {
               <h2>{player.display_name}</h2>
               <p className="username-tag">@{player.username}</p>
               <p className="kd-tag">K/D Ratio: {kd}</p>
-              {player.last_synced && (
-                <p className="sync-time">Last synced: {new Date(player.last_synced).toLocaleString()}</p>
-              )}
-              <button
-                className="btn btn-secondary"
-                onClick={handleSync}
-                disabled={syncing}
-              >
-                {syncing ? 'Syncing from Roblox...' : 'Sync Roblox Profile'}
-              </button>
             </div>
           </div>
 
@@ -140,14 +109,14 @@ export default function PlayerLookup() {
           <div className="stat-grid">
             <StatBox label="Throw Kills" value={(player.throw_kills ?? 0).toLocaleString()} />
             <StatBox label="Slash Kills" value={(player.slash_kills ?? 0).toLocaleString()} />
-            <StatBox label="Knife Throws" value={(player.knife_throws ?? 0).toLocaleString()} />
             <StatBox label="Longest Streak" value={player.longest_streak ?? 0} />
+            <StatBox label="MVPs" value={player.mvps ?? 0} />
           </div>
 
           <h3 className="combat-heading">Aerial Stats</h3>
           <div className="stat-grid">
             <StatBox label="Air Kills" value={(player.air_kills ?? 0).toLocaleString()} />
-            <StatBox label="Avg Knife Air Time (sec)" value={player.avg_air_time ?? 0} />
+            <StatBox label="Avg Air Time (sec)" value={player.avg_air_time ?? 0} />
             <StatBox label="Air Kill Rate" value={`${player.air_kill_rate ?? 0}%`} />
           </div>
         </div>

@@ -24,11 +24,10 @@ export default function Home() {
           <p>Search any tracked player and view their kill and death breakdown.</p>
         </div>
         <div className="card">
-          <h2>Roblox Sync</h2>
+          <h2>Live Game Data</h2>
           <p>
-            Player avatars and display names come from the Roblox API.
-            Kill and death counts are tracked by your game.
-            Some data may be innacurate, I'm pretty new to web development and APIs so if you see any bugs please let me know!
+            Stats load live from your Roblox PlayerStore. When players earn kills
+            in-game, they show up here automatically.
           </p>
         </div>
       </section>

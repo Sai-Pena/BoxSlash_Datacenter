@@ -1,25 +1,32 @@
 """
 BoxSlash Stat Tracker — REST API
 
+Stats are loaded live from your Roblox ProfileStore datastore.
+The API key stays on the server — never put it in the React frontend.
+
 Run locally:  uvicorn main:app --reload --port 8000
 Run online:   uvicorn main:app --host 0.0.0.0 --port $PORT
 """
 
 import os
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+# Load .env BEFORE other local imports so the API key is available
+load_dotenv(Path(__file__).parent / ".env")
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 import database as db
-from roblox_api import fetch_roblox_profile
 
 app = FastAPI(
     title="BoxSlash Stat Tracker API",
-    description="REST API for BoxSlash player stats and Roblox profile sync.",
-    version="1.0.0",
+    description="REST API for BoxSlash player stats from Roblox ProfileStore.",
+    version="2.0.0",
 )
 
-# Local dev + your live frontend URL (set ALLOWED_ORIGINS when deploying)
 default_origins = "http://localhost:5173,http://127.0.0.1:5173"
 allowed_origins = [
     origin.strip()
@@ -41,72 +48,40 @@ def root():
     return {
         "message": "BoxSlash Stat Tracker API",
         "docs": "/docs",
+        "data_source": "Roblox ProfileStore (live)",
         "endpoints": {
-            "players": "GET /api/players",
             "player": "GET /api/players/{username}",
             "leaderboard": "GET /api/leaderboard",
-            "sync_one": "POST /api/sync/{username}",
-            "sync_all": "POST /api/sync",
+            "tracked": "GET /api/tracked",
         },
     }
 
 
-@app.get("/api/players")
-def list_players():
-    """Return every tracked player."""
-    players = [db.add_combat_stats(p) for p in db.get_all_players()]
-    return {"players": players}
+@app.get("/api/tracked")
+def tracked_players():
+    """Usernames shown on the leaderboard."""
+    return {"tracked": db.get_tracked_usernames()}
 
 
 @app.get("/api/players/{username}")
-def get_player(username: str):
-    """Look up one player by Roblox username."""
-    player = db.get_player(username)
-    if not player:
-        raise HTTPException(status_code=404, detail=f"Player '{username}' not found.")
-    return db.add_combat_stats(player)
-
-
-@app.get("/api/leaderboard")
-def leaderboard():
-    """Return players sorted by kills, then K/D ratio."""
-    return {"leaderboard": db.get_leaderboard()}
-
-
-@app.post("/api/sync/{username}")
-async def sync_player(username: str):
-    """
-    Pull fresh Roblox profile data (avatar, display name, user id)
-    for one player and save it.
-    """
-    player = db.get_player(username)
-    if not player:
-        raise HTTPException(status_code=404, detail=f"Player '{username}' not found.")
-
+async def get_player(username: str):
+    """Look up one player by Roblox username (live from datastore)."""
     try:
-        roblox_data = await fetch_roblox_profile(username)
+        return await db.fetch_player(username)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"Roblox API error: {e}")
 
-    updated = db.update_roblox_data(username, roblox_data)
-    return {"message": f"Synced {username} from Roblox.", "player": db.add_combat_stats(updated)}
 
-
-@app.post("/api/sync")
-async def sync_all_players():
-    """Sync Roblox profile data for every player in the database."""
-    players = db.get_all_players()
-    results = []
-
-    for player in players:
-        username = player["username"]
-        try:
-            roblox_data = await fetch_roblox_profile(username)
-            updated = db.update_roblox_data(username, roblox_data)
-            results.append({"username": username, "status": "ok", "player": updated})
-        except Exception as e:
-            results.append({"username": username, "status": "error", "error": str(e)})
-
-    return {"synced": len([r for r in results if r["status"] == "ok"]), "results": results}
+@app.get("/api/leaderboard")
+async def leaderboard():
+    """Return tracked players sorted by kills, then K/D ratio."""
+    try:
+        return {"leaderboard": await db.fetch_leaderboard()}
+    except RuntimeError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Roblox API error: {e}")

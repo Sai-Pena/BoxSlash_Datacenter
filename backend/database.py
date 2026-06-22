@@ -1,30 +1,17 @@
 """
-bomboclatttt
-
+Player stats service — loads live data from Roblox ProfileStore.
 """
 
 import json
-from datetime import datetime, timezone
 from pathlib import Path
 
-DATA_FILE = Path(__file__).parent / "data" / "players.json"
+from roblox_api import fetch_roblox_profile
+from roblox_datastore import fetch_profile_data, map_profile_to_stats
 
-
-def _load() -> dict:
-    if not DATA_FILE.exists():
-        return {}
-    with open(DATA_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
-
-
-def _save(players: dict) -> None:
-    DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
-    with open(DATA_FILE, "w", encoding="utf-8") as f:
-        json.dump(players, f, indent=2)
+TRACKED_FILE = Path(__file__).parent / "data" / "tracked_players.json"
 
 
 def calculate_kd(player: dict) -> float:
-    """Kill/death ratio. If no deaths yet, K/D equals total kills."""
     kills = player.get("kills", 0)
     deaths = player.get("deaths", 0)
     if deaths == 0:
@@ -32,51 +19,50 @@ def calculate_kd(player: dict) -> float:
     return round(kills / deaths, 2)
 
 
-def get_all_players() -> list[dict]:
-    players = _load()
-    return list(players.values())
+def add_combat_stats(player: dict) -> dict:
+    kills = player.get("kills", 0)
+    air_kills = player.get("air_kills", 0)
+    player["kd_ratio"] = calculate_kd(player)
+    player["air_kill_rate"] = round((air_kills / kills) * 100, 1) if kills > 0 else 0
+    return player
 
 
-def get_player(username: str) -> dict | None:
-    players = _load()
-    key = username.lower()
-    return players.get(key)
+def get_tracked_usernames() -> list[str]:
+    if not TRACKED_FILE.exists():
+        return []
+    with open(TRACKED_FILE, "r", encoding="utf-8") as f:
+        return json.load(f)
 
 
-def save_player(username: str, player_data: dict) -> dict:
-    players = _load()
-    key = username.lower()
-    players[key] = player_data
-    _save(players)
-    return player_data
+async def fetch_player(username: str) -> dict:
+    """Look up a player by username and pull live stats from ProfileStore."""
+    roblox_profile = await fetch_roblox_profile(username)
+    profile_entry = await fetch_profile_data(roblox_profile["roblox_user_id"])
+    player = map_profile_to_stats(profile_entry, roblox_profile)
+    return add_combat_stats(player)
 
 
-def update_roblox_data(username: str, roblox_data: dict) -> dict:
-    """Update only the Roblox profile fields, keep kill/death stats the same."""
-    player = get_player(username)
-    if not player:
-        raise ValueError(f"Player '{username}' is not in the database.")
+async def fetch_leaderboard() -> list[dict]:
+    """Build leaderboard from tracked players using live datastore stats."""
+    players = []
+    errors = []
 
-    player["roblox_user_id"] = roblox_data["roblox_user_id"]
-    player["username"] = roblox_data["username"]
-    player["display_name"] = roblox_data["display_name"]
-    player["avatar_url"] = roblox_data["avatar_url"]
-    player["last_synced"] = datetime.now(timezone.utc).isoformat()
+    for username in get_tracked_usernames():
+        try:
+            player = await fetch_player(username)
+            players.append(player)
+        except ValueError:
+            continue
+        except Exception as e:
+            errors.append(str(e))
 
-    return save_player(username, player)
+    if not players and errors:
+        raise RuntimeError(errors[0])
 
+    players.sort(key=lambda p: (p.get("kills", 0), calculate_kd(p)), reverse=True)
 
-def _leaderboard_sort_key(player: dict) -> tuple:
-    """Rank by kills first, then K/D ratio."""
-    return (player.get("kills", 0), calculate_kd(player))
-
-
-def get_leaderboard() -> list[dict]:
-    players = get_all_players()
     ranked = []
-    for i, player in enumerate(
-        sorted(players, key=_leaderboard_sort_key, reverse=True), start=1
-    ):
+    for i, player in enumerate(players, start=1):
         ranked.append(
             {
                 "rank": i,
@@ -89,13 +75,3 @@ def get_leaderboard() -> list[dict]:
             }
         )
     return ranked
-
-
-def add_combat_stats(player: dict) -> dict:
-    """Add computed stats to a player dict for API responses."""
-    kills = player.get("kills", 0)
-    air_kills = player.get("air_kills", 0)
-
-    player["kd_ratio"] = calculate_kd(player)
-    player["air_kill_rate"] = round((air_kills / kills) * 100, 1) if kills > 0 else 0
-    return player

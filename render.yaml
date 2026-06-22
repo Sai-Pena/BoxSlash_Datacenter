@@ -6,5 +6,11 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
+      - key: ROBLOX_UNIVERSE_ID
+        value: "10333992559"
+      - key: ROBLOX_DATASTORE_NAME
+        value: PlayerStore
+      - key: ROBLOX_API_KEY
+        sync: false
       - key: ALLOWED_ORIGINS
         sync: false

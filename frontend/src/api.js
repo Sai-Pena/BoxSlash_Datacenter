@@ -1,16 +1,17 @@
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+// Empty string = same origin; Vite proxies /api to the backend (see vite.config.js)
+const API_BASE = import.meta.env.VITE_API_URL || ''
 
 async function apiGet(path) {
-  const response = await fetch(`${API_BASE}${path}`)
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}))
-    throw new Error(error.detail || `Request failed (${response.status})`)
+  let response
+  try {
+    response = await fetch(`${API_BASE}${path}`)
+  } catch {
+    throw new Error(
+      `Cannot reach the backend. Make sure it is running:\n` +
+      'cd ~/dev/BoxSlash_Datacenter/backend\n' +
+      './venv/Scripts/uvicorn main:app --reload --host 127.0.0.1 --port 8002'
+    )
   }
-  return response.json()
-}
-
-async function apiPost(path) {
-  const response = await fetch(`${API_BASE}${path}`, { method: 'POST' })
   if (!response.ok) {
     const error = await response.json().catch(() => ({}))
     throw new Error(error.detail || `Request failed (${response.status})`)
@@ -24,16 +25,4 @@ export function getLeaderboard() {
 
 export function getPlayer(username) {
   return apiGet(`/api/players/${encodeURIComponent(username)}`)
-}
-
-export function getAllPlayers() {
-  return apiGet('/api/players')
-}
-
-export function syncPlayer(username) {
-  return apiPost(`/api/sync/${encodeURIComponent(username)}`)
-}
-
-export function syncAllPlayers() {
-  return apiPost('/api/sync')
 }
