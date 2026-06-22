@@ -58,7 +58,7 @@ export default function Leaderboard() {
             </thead>
             <tbody>
               {rows.map((row) => (
-                <tr key={row.username} className={row.rank <= 3 ? `top-${row.rank}` : ''}>
+                <tr key={`${row.username}-${row.roblox_user_id}`} className={`${row.rank <= 3 ? `top-${row.rank}` : ''} ${row.malformed ? 'malformed-row' : ''}`}>
                   <td className="rank-cell">#{row.rank}</td>
                   <td className="player-cell">
                     {row.avatar_url ? (
@@ -68,6 +68,9 @@ export default function Leaderboard() {
                     )}
                     <div className="player-name-links">
                       <Link to={`/lookup?user=${row.username}`}>{row.display_name}</Link>
+                      {row.malformed && (
+                        <span className="malformed-tag">MALFORMED DATA</span>
+                      )}
                       {row.roblox_user_id && (
                         <a
                           href={robloxProfileUrl(row.roblox_user_id)}

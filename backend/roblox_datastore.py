@@ -226,6 +226,27 @@ def map_profile_to_stats(profile_entry: dict, roblox_profile: dict) -> dict:
     return stats
 
 
+def malformed_stats(user_id: int) -> dict:
+    """Placeholder stats when PlayerStore data is in an old or broken format."""
+    return {
+        "roblox_user_id": user_id,
+        "kills": 0,
+        "deaths": 0,
+        "air_kills": 0,
+        "avg_air_time": 0,
+        "throw_kills": 0,
+        "slash_kills": 0,
+        "throw_hits": 0,
+        "slash_hits": 0,
+        "longest_streak": 0,
+        "mvps": 0,
+        "style_points": 0,
+        "cash": 0,
+        "playtime_hours": 0,
+        "malformed": True,
+    }
+
+
 def default_roblox_profile(user_id: int) -> dict:
     """Fallback when Roblox user info cannot be loaded."""
     return {

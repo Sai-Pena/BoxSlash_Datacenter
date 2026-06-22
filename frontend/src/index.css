@@ -152,6 +152,24 @@ a:hover {
   color: #6eb5ff;
 }
 
+.malformed-tag {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  color: #ffaa44;
+  background: rgba(255, 170, 68, 0.12);
+  border: 1px solid rgba(255, 170, 68, 0.35);
+  padding: 2px 6px;
+  border-radius: 2px;
+  margin-top: 2px;
+  width: fit-content;
+}
+
+.malformed-row td {
+  opacity: 0.85;
+}
+
 /* Hero */
 .hero {
   text-align: center;

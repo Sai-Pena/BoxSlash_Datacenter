@@ -13,6 +13,7 @@ from roblox_datastore import (
     fetch_profile_data,
     fetch_profile_data_by_entry_id,
     list_all_entry_ids,
+    malformed_stats,
     parse_stats_from_data,
     parse_user_id_from_entry_id,
 )
@@ -43,55 +44,74 @@ def get_tracked_usernames() -> list[str]:
         return json.load(f)
 
 
-async def fetch_player(username: str) -> dict:
-    """Look up a player by username and pull live stats from PlayerStore."""
-    roblox_profile = await fetch_roblox_profile(username)
-    profile_entry = await fetch_profile_data(roblox_profile["roblox_user_id"])
-
-    data = extract_data_table(profile_entry)
-    if data is None:
-        raise ValueError(f"Player '{username}' has unreadable profile data.")
-
-    stats = parse_stats_from_data(data, roblox_profile["roblox_user_id"])
-    if stats is None:
-        raise ValueError(f"Player '{username}' has unreadable profile data.")
-
+def _attach_profile(stats: dict, profile: dict) -> dict:
     stats.update(
         {
-            "username": roblox_profile["username"],
-            "display_name": roblox_profile["display_name"],
-            "avatar_url": roblox_profile["avatar_url"],
+            "username": profile["username"],
+            "display_name": profile["display_name"],
+            "avatar_url": profile.get("avatar_url"),
         }
     )
     return add_combat_stats(stats)
 
 
+async def fetch_player(username: str) -> dict:
+    """Look up a player by username and pull live stats from PlayerStore."""
+    roblox_profile = await fetch_roblox_profile(username)
+    user_id = roblox_profile["roblox_user_id"]
+
+    try:
+        profile_entry = await fetch_profile_data(user_id)
+    except ValueError:
+        raise
+
+    data = extract_data_table(profile_entry)
+    if data is None:
+        stats = malformed_stats(user_id)
+        return _attach_profile(stats, roblox_profile)
+
+    stats = parse_stats_from_data(data, user_id)
+    if stats is None:
+        stats = malformed_stats(user_id)
+    else:
+        stats["malformed"] = False
+
+    return _attach_profile(stats, roblox_profile)
+
+
 async def _load_stats_for_entry(entry_id: str) -> dict | None:
-    """Try to load stats for one datastore entry. Skip bad entries silently."""
+    """Load stats for one datastore entry. Uses placeholder stats if data is malformed."""
     user_id = parse_user_id_from_entry_id(entry_id)
     if user_id is None:
         return None
 
+    profile_entry = None
     try:
         profile_entry = await fetch_profile_data_by_entry_id(entry_id)
         if profile_entry is None:
             profile_entry = await fetch_profile_data(user_id)
+    except ValueError:
+        return malformed_stats(user_id)
     except Exception:
-        return None
+        return malformed_stats(user_id)
+
+    if profile_entry is None:
+        return malformed_stats(user_id)
 
     data = extract_data_table(profile_entry)
     if data is None:
-        return None
+        return malformed_stats(user_id)
 
     stats = parse_stats_from_data(data, user_id)
+    if stats is None:
+        return malformed_stats(user_id)
+
+    stats["malformed"] = False
     return stats
 
 
 async def fetch_leaderboard() -> list[dict]:
-    """
-    Build top 100 leaderboard from every PlayerStore entry.
-    Skips entries with missing or broken data instead of failing.
-    """
+    """Build top 100 leaderboard from every PlayerStore entry."""
     entry_ids = await list_all_entry_ids()
     if not entry_ids:
         return []
@@ -110,7 +130,10 @@ async def fetch_leaderboard() -> list[dict]:
         seen_user_ids.add(user_id)
         players.append(stats)
 
-    players.sort(key=lambda p: (p.get("kills", 0), calculate_kd(p)), reverse=True)
+    # Valid stats first (by kills), malformed entries sink to the bottom
+    players.sort(
+        key=lambda p: (p.get("malformed", False), -p.get("kills", 0), -calculate_kd(p))
+    )
     top_players = players[:LEADERBOARD_LIMIT]
 
     user_ids = [p["roblox_user_id"] for p in top_players]
@@ -138,6 +161,7 @@ async def fetch_leaderboard() -> list[dict]:
                 "kills": stats.get("kills", 0),
                 "deaths": stats.get("deaths", 0),
                 "kd_ratio": calculate_kd(stats),
+                "malformed": stats.get("malformed", False),
             }
         )
 

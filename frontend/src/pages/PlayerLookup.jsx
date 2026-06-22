@@ -86,6 +86,9 @@ export default function PlayerLookup() {
             <div className="player-info">
               <h2>{player.display_name}</h2>
               <p className="username-tag">@{player.username}</p>
+              {player.malformed && (
+                <span className="malformed-tag">MALFORMED DATA</span>
+              )}
               <p className="kd-tag">K/D Ratio: {kd}</p>
               <div className="player-actions">
                 <RobloxProfileButton userId={player.roblox_user_id} />
