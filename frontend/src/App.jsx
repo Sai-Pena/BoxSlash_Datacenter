@@ -21,7 +21,7 @@ function NavBar() {
         <nav className="nav">
           <Link to="/" className={navClass('/')}>Home</Link>
           <Link to="/leaderboard" className={navClass('/leaderboard')}>Leaderboard</Link>
-          <Link to="/lookup" className={navClass('/lookup')}>Player Lookup</Link>
+          <Link to="/lookup" className={navClass('/lookup')}>Profiles</Link>
         </nav>
       </div>
     </header>

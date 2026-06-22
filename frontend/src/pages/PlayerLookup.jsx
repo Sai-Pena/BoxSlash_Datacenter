@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { getPlayer } from '../api'
+import RobloxProfileButton from '../components/RobloxProfileButton'
+import { formatKd } from '../utils'
 
 function StatBox({ label, value, highlight }) {
   return (
@@ -9,16 +11,6 @@ function StatBox({ label, value, highlight }) {
       <div className="stat-label">{label}</div>
     </div>
   )
-}
-
-function formatKd(player) {
-  if (player.kd_ratio != null && player.kd_ratio !== '') {
-    return player.kd_ratio
-  }
-  if (player.deaths === 0) {
-    return player.kills ?? 0
-  }
-  return ((player.kills ?? 0) / player.deaths).toFixed(2)
 }
 
 export default function PlayerLookup() {
@@ -64,9 +56,9 @@ export default function PlayerLookup() {
 
   return (
     <div className="page">
-      <h1>Player Lookup</h1>
+      <h1>Player Profile</h1>
       <p className="page-desc">
-        Search by Roblox username. Stats load live from your game&apos;s PlayerStore. Try &quot;a2onlineq&quot;.
+        Search by Roblox username. Stats load live from PlayerStore.
       </p>
 
       <form className="search-form" onSubmit={handleSubmit}>
@@ -77,7 +69,7 @@ export default function PlayerLookup() {
           onChange={(e) => setUsername(e.target.value)}
         />
         <button type="submit" className="btn btn-primary" disabled={loading}>
-          {loading ? 'Loading from Roblox...' : 'Search'}
+          {loading ? 'Loading...' : 'Search'}
         </button>
       </form>
 
@@ -95,6 +87,10 @@ export default function PlayerLookup() {
               <h2>{player.display_name}</h2>
               <p className="username-tag">@{player.username}</p>
               <p className="kd-tag">K/D Ratio: {kd}</p>
+              <div className="player-actions">
+                <RobloxProfileButton userId={player.roblox_user_id} />
+                <Link to="/leaderboard" className="btn btn-secondary">Leaderboard</Link>
+              </div>
             </div>
           </div>
 

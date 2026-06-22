@@ -69,6 +69,7 @@ async def fetch_leaderboard() -> list[dict]:
                 "username": player["username"],
                 "display_name": player.get("display_name", player["username"]),
                 "avatar_url": player.get("avatar_url"),
+                "roblox_user_id": player.get("roblox_user_id"),
                 "kills": player.get("kills", 0),
                 "deaths": player.get("deaths", 0),
                 "kd_ratio": calculate_kd(player),

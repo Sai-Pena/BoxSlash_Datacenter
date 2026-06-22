@@ -10,7 +10,7 @@ export default function Home() {
         </p>
         <div className="hero-buttons">
           <Link to="/leaderboard" className="btn btn-primary">View Kill Leaderboard</Link>
-          <Link to="/lookup" className="btn btn-secondary">Look Up Player</Link>
+          <Link to="/lookup" className="btn btn-secondary">Search Players</Link>
         </div>
       </section>
 
@@ -26,7 +26,7 @@ export default function Home() {
         <div className="card">
           <h2>Live Game Data</h2>
           <p>
-            Stats load live from your Roblox PlayerStore. When players earn kills
+            Stats load live from BoxSlash Storage. When players earn kills
             in-game, they show up here automatically.
           </p>
         </div>

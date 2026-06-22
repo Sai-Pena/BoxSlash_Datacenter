@@ -104,6 +104,54 @@ a:hover {
   font-size: 1.05rem;
 }
 
+.page-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.page-header-row .page-desc {
+  margin-bottom: 0;
+}
+
+.player-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.btn-roblox {
+  background: #335fff;
+  color: #fff;
+  border: 1px solid #4a6fff;
+}
+
+.btn-roblox:hover {
+  background: #2a4fd9;
+  text-decoration: none;
+  color: #fff;
+}
+
+.player-name-links {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.roblox-mini-link {
+  font-size: 0.75rem;
+  color: #888;
+  text-decoration: none;
+}
+
+.roblox-mini-link:hover {
+  color: #6eb5ff;
+}
+
 /* Hero */
 .hero {
   text-align: center;
@@ -152,6 +200,8 @@ a:hover {
 
 .btn-secondary:hover {
   background: #353d52;
+  text-decoration: none;
+  color: #e8e8e8;
 }
 
 .btn:disabled {
