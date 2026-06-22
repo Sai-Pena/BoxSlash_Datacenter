@@ -1,7 +1,7 @@
 """
 BoxSlash Stat Tracker — REST API
 
-Stats are loaded live from your Roblox ProfileStore datastore.
+Stats are loaded live from your Roblox PlayerStore datastore.
 The API key stays on the server — never put it in the React frontend.
 
 Run locally:  uvicorn main:app --reload --port 8000
@@ -23,7 +23,7 @@ import database as db
 
 app = FastAPI(
     title="BoxSlash Stat Tracker API",
-    description="REST API for BoxSlash player stats from Roblox ProfileStore.",
+    description="REST API for BoxSlash player stats from Roblox PlayerStore.",
     version="2.0.0",
 )
 
@@ -48,7 +48,7 @@ def root():
     return {
         "message": "BoxSlash Stat Tracker API",
         "docs": "/docs",
-        "data_source": "Roblox ProfileStore (live)",
+        "data_source": "Roblox PlayerStore (live)",
         "endpoints": {
             "player": "GET /api/players/{username}",
             "leaderboard": "GET /api/leaderboard",

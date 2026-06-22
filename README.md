@@ -1,234 +1,134 @@
-<<<<<<< HEAD
 # BoxSlash Stat Tracker
 
-A simple stat tracker website for your Roblox game **BoxSlash**. It has a Python REST API backend and a React frontend.
+A stat tracker website for your Roblox game **BoxSlash**. Python REST API backend + React frontend. Stats load live from your **PlayerStore** datastore.
 
-**Features:**
-- Kill/death leaderboard for your knife throwing and slashing game
-- Player lookup by Roblox username
-- Sync player avatars and display names from the [Roblox Cloud API](https://create.roblox.com/docs/cloud/reference/domains/apis)
-- Preset players: `roblox` and `a2onlineq` (with sample kill/death stats)
+**Repo:** https://github.com/Sai-Pena/BoxSlash_Datacenter
 
 ---
 
-## Project Structure
+## Local Development
 
-```
-BoxSlash_Datacenter/
-├── backend/          # Python FastAPI REST API
-│   ├── main.py       # API routes
-│   ├── roblox_api.py # Calls Roblox Users + Thumbnails APIs
-│   ├── database.py   # Reads/writes player stats (JSON file)
-│   └── data/
-│       └── players.json
-└── frontend/         # React website
-    └── src/
-        ├── pages/    # Home, Leaderboard, Player Lookup
-        └── api.js    # Talks to the backend
-```
-
----
-
-## Setup (First Time)
-
-You need **Python 3.10+** and **Node.js 18+** installed.
-
-### 1. Start the Backend
-
-Open a terminal in the `backend` folder:
+### Backend (Git Bash on Windows)
 
 ```bash
-cd backend
-python -m venv venv
-
-# Windows:
-venv\Scripts\activate
-
-# Mac/Linux:
-source venv/bin/activate
-
-pip install -r requirements.txt
-uvicorn main:app --reload --port 8000
+cd ~/dev/BoxSlash_Datacenter/backend
+cp .env.example .env   # paste your Roblox API key
+./venv/Scripts/uvicorn main:app --reload --host 127.0.0.1 --port 8002
 ```
 
-The API runs at **http://localhost:8000**.  
-Open **http://localhost:8000/docs** to see all endpoints and try them out.
-
-### 2. Start the Frontend
-
-Open a **second** terminal in the `frontend` folder:
+### Frontend
 
 ```bash
-cd frontend
+cd ~/dev/BoxSlash_Datacenter/frontend
 npm install
 npm run dev
 ```
 
-The website runs at **http://localhost:5173**.
+Open **http://localhost:5173**
 
 ---
 
-## How to Use the Site
+## Deploy Online (Render + Vercel)
 
-1. Go to **http://localhost:5173**
-2. Click **Leaderboard** to see ranked players
-3. Click **Player Lookup** and search `roblox` or `a2onlineq`
-4. Click **Sync Roblox Profile** to pull their avatar and display name from Roblox
-
----
-
-## How Roblox Sync Works
-
-The backend uses two public Roblox APIs (no API key needed for these):
-
-| Step | API | What it does |
-|------|-----|--------------|
-| 1 | `POST https://users.roblox.com/v1/usernames/users` | Converts username → Roblox user ID |
-| 2 | `GET https://thumbnails.roblox.com/v1/users/avatar-headshot` | Gets the player's profile picture URL |
-
-Docs:
-- [Users API](https://create.roblox.com/docs/cloud/reference/domains/users)
-- [Thumbnails API](https://create.roblox.com/docs/cloud/reference/features/thumbnails)
-
-### Sync One Player (from the website)
-
-On the **Player Lookup** page, search a player and click **Sync Roblox Profile**.
-
-### Sync One Player (from the API)
+### Step 1 — Push code to GitHub
 
 ```bash
-curl -X POST http://localhost:8000/api/sync/roblox
+cd ~/dev/BoxSlash_Datacenter
+git add .
+git commit -m "Prepare for Render and Vercel deployment"
+git push origin main
 ```
 
-### Sync All Players
-
-```bash
-curl -X POST http://localhost:8000/api/sync
-```
-
-### What Gets Updated vs What Stays the Same
-
-| Field | Source |
-|-------|--------|
-| Avatar image, display name, Roblox user ID | **Roblox API** (sync updates these) |
-| Kills, deaths, knife stats, aerial stats | **Your game data** (stored in `players.json`) |
-
-Game stats are **not** on Roblox's public API — you update those yourself (see below).
-
-The **leaderboard** only shows kills, deaths, and K/D. Extra stats appear on the **Player Lookup** page.
+**Never commit `backend/.env`** — it contains your API key.
 
 ---
 
-## Extra Stats (Player Lookup Only)
+### Step 2 — Deploy backend on Render
 
-These fit a knife throwing/slashing + building game:
+1. Go to [render.com](https://render.com) and sign in with GitHub
+2. **New → Blueprint** (or **Web Service**)
+3. Connect repo: **Sai-Pena/BoxSlash_Datacenter**
+4. If using Blueprint, Render reads `render.yaml` automatically. Otherwise set manually:
 
-| Stat | What it means |
-|------|---------------|
-| `throw_kills` | Kills from thrown knives |
-| `slash_kills` | Kills from melee slashes |
-| `knife_throws` | Total knives thrown |
-| `longest_streak` | Best kill streak in one life |
-| `air_kills` | Kills scored while in the air |
-| `avg_air_time` | Average seconds in air when getting a kill |
-| `air_kill_rate` | Auto-calculated: air kills ÷ total kills (shown as %) |
+| Setting | Value |
+|---------|--------|
+| Root Directory | `backend` |
+| Runtime | Python 3 |
+| Build Command | `pip install -r requirements.txt` |
+| Start Command | `uvicorn main:app --host 0.0.0.0 --port $PORT` |
+
+5. Add **Environment Variables**:
+
+| Key | Value |
+|-----|--------|
+| `ROBLOX_API_KEY` | your Roblox API key (in quotes if it starts with `+`) |
+| `ROBLOX_UNIVERSE_ID` | `10333992559` |
+| `ROBLOX_DATASTORE_NAME` | `PlayerStore` |
+| `ALLOWED_ORIGINS` | `http://localhost:5173` (add Vercel URL after Step 3) |
+
+6. Deploy and copy your URL, e.g. `https://boxslash-api.onrender.com`
+7. Test: open `https://YOUR-RENDER-URL.onrender.com/api/leaderboard`
 
 ---
 
-## How to Update Player Game Stats
+### Step 3 — Deploy frontend on Vercel
 
-Edit `backend/data/players.json`. Each player looks like this:
+1. Go to [vercel.com](https://vercel.com) and sign in with GitHub
+2. **Add New Project** → import **Sai-Pena/BoxSlash_Datacenter**
+3. Settings:
+
+| Setting | Value |
+|---------|--------|
+| Root Directory | `frontend` |
+| Framework | Vite |
+| Build Command | `npm run build` |
+| Output Directory | `dist` |
+
+4. Add **Environment Variable**:
+
+| Key | Value |
+|-----|--------|
+| `VITE_API_URL` | `https://YOUR-RENDER-URL.onrender.com` |
+
+5. Deploy — you get a URL like `https://boxslash-datacenter.vercel.app`
+
+---
+
+### Step 4 — Connect them
+
+1. Copy your **Vercel URL**
+2. In **Render** → your service → **Environment** → update `ALLOWED_ORIGINS`:
+
+```
+http://localhost:5173,https://your-site.vercel.app
+```
+
+3. **Manual Deploy** on Render to apply the change
+4. Share your **Vercel URL** — that's your public site
+
+---
+
+## Leaderboard Players
+
+Edit `backend/data/tracked_players.json` to control who appears on the leaderboard:
 
 ```json
-{
-  "username": "a2onlineq",
-  "kills": 2103,
-  "deaths": 1104,
-  "air_kills": 521,
-  "avg_air_time": 2.3,
-  "throw_kills": 1200,
-  "slash_kills": 903,
-  "knife_throws": 6800,
-  "longest_streak": 18
-}
+["a2onlineq", "roblox"]
 ```
 
-Change the numbers, save the file, and refresh the website. No restart needed.
-
-### Adding a New Player
-
-Add a new entry to `players.json` (use lowercase as the key):
-
-```json
-"newplayer": {
-  "username": "newplayer",
-  "roblox_user_id": null,
-  "display_name": "newplayer",
-  "avatar_url": null,
-  "kills": 0,
-  "deaths": 0,
-  "air_kills": 0,
-  "avg_air_time": 0,
-  "throw_kills": 0,
-  "slash_kills": 0,
-  "knife_throws": 0,
-  "longest_streak": 0,
-  "last_synced": null
-}
-```
-
-Then run `POST /api/sync/newplayer` to pull their Roblox profile.
+Player lookup works for **any** username with a PlayerStore entry.
 
 ---
 
-## Connecting Your Roblox Game (Future Idea)
+## Roblox API Key Setup
 
-Right now stats are edited manually. Later you can have your Roblox game send stats to this API:
-
-1. In your Roblox game, use `HttpService` to `POST` stats when a match ends
-2. Add a new endpoint in `main.py` like `POST /api/stats/update`
-3. Your game sends: `{ "username": "...", "kills": 5, "deaths": 2 }`
-
-That way stats update automatically when people play.
-
----
-
-## API Endpoints
-
-| Method | URL | Description |
-|--------|-----|-------------|
-| GET | `/api/players` | List all players |
-| GET | `/api/players/{username}` | Get one player's stats |
-| GET | `/api/leaderboard` | Ranked leaderboard |
-| POST | `/api/sync/{username}` | Sync one player from Roblox |
-| POST | `/api/sync` | Sync all players from Roblox |
-
----
-
-## Leaderboard Ranking
-
-Players are ranked by **total kills** first. If two players have the same kills, the one with the higher **K/D ratio** ranks higher.
-
-You can change this in `backend/database.py` in the `_leaderboard_sort_key` function.
-
----
-
-## Troubleshooting
-
-**"Player not found"** — Make sure the username is in `players.json` (lowercase key).
-
-**Avatar not showing** — Click **Sync Roblox Profile** or run the sync API endpoint.
-
-**Frontend can't reach backend** — Make sure the backend is running on port 8000.
-
-**CORS errors** — The backend already allows `localhost:5173`. If you use a different port, edit `main.py`.
+1. [create.roblox.com/dashboard/credentials](https://create.roblox.com/dashboard/credentials)
+2. Create API key with **Restrict by Experience** → **BoxSlash Alpha**
+3. Enable `universe-datastores.objects:read` (and related read scopes)
+4. Paste key into Render env vars and local `backend/.env`
 
 ---
 
 ## License
 
-Personal project for BoxSlash game development and statistics.
-=======
-# BoxSlash_Datacenter
-You have a box.... then you SLASH it!
->>>>>>> 926233907284a7cbc06b0f895cebcae7a97718d2
+MIT — Personal project for BoxSlash game development and statistics.
