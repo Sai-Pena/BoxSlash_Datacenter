@@ -30,7 +30,7 @@ export default function Leaderboard() {
       <div className="page-header-row">
         <div>
           <h1>Kill Leaderboard</h1>
-          <p className="page-desc">Ranked by total kills. Click a name for full stats.</p>
+          <p className="page-desc">Top 100 players ranked by kills. Click a name for full stats.</p>
         </div>
         <button className="btn btn-secondary" onClick={loadData} disabled={loading}>
           {loading ? 'Refreshing...' : 'Refresh'}

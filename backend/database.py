@@ -1,12 +1,21 @@
 """
-Player stats service — loads live data from Roblox ProfileStore.
+Player stats service — loads live data from Roblox PlayerStore.
 """
 
 import json
 from pathlib import Path
 
-from roblox_api import fetch_roblox_profile
-from roblox_datastore import fetch_profile_data, map_profile_to_stats
+from roblox_api import fetch_roblox_profile, fetch_roblox_profiles_by_ids
+from roblox_datastore import (
+    LEADERBOARD_LIMIT,
+    default_roblox_profile,
+    extract_data_table,
+    fetch_profile_data,
+    fetch_profile_data_by_entry_id,
+    list_all_entry_ids,
+    parse_stats_from_data,
+    parse_user_id_from_entry_id,
+)
 
 TRACKED_FILE = Path(__file__).parent / "data" / "tracked_players.json"
 
@@ -35,44 +44,101 @@ def get_tracked_usernames() -> list[str]:
 
 
 async def fetch_player(username: str) -> dict:
-    """Look up a player by username and pull live stats from ProfileStore."""
+    """Look up a player by username and pull live stats from PlayerStore."""
     roblox_profile = await fetch_roblox_profile(username)
     profile_entry = await fetch_profile_data(roblox_profile["roblox_user_id"])
-    player = map_profile_to_stats(profile_entry, roblox_profile)
-    return add_combat_stats(player)
+
+    data = extract_data_table(profile_entry)
+    if data is None:
+        raise ValueError(f"Player '{username}' has unreadable profile data.")
+
+    stats = parse_stats_from_data(data, roblox_profile["roblox_user_id"])
+    if stats is None:
+        raise ValueError(f"Player '{username}' has unreadable profile data.")
+
+    stats.update(
+        {
+            "username": roblox_profile["username"],
+            "display_name": roblox_profile["display_name"],
+            "avatar_url": roblox_profile["avatar_url"],
+        }
+    )
+    return add_combat_stats(stats)
+
+
+async def _load_stats_for_entry(entry_id: str) -> dict | None:
+    """Try to load stats for one datastore entry. Skip bad entries silently."""
+    user_id = parse_user_id_from_entry_id(entry_id)
+    if user_id is None:
+        return None
+
+    try:
+        profile_entry = await fetch_profile_data_by_entry_id(entry_id)
+        if profile_entry is None:
+            profile_entry = await fetch_profile_data(user_id)
+    except Exception:
+        return None
+
+    data = extract_data_table(profile_entry)
+    if data is None:
+        return None
+
+    stats = parse_stats_from_data(data, user_id)
+    return stats
 
 
 async def fetch_leaderboard() -> list[dict]:
-    """Build leaderboard from tracked players using live datastore stats."""
-    players = []
-    errors = []
+    """
+    Build top 100 leaderboard from every PlayerStore entry.
+    Skips entries with missing or broken data instead of failing.
+    """
+    entry_ids = await list_all_entry_ids()
+    if not entry_ids:
+        return []
 
-    for username in get_tracked_usernames():
-        try:
-            player = await fetch_player(username)
-            players.append(player)
-        except ValueError:
+    players: list[dict] = []
+    seen_user_ids: set[int] = set()
+
+    for entry_id in entry_ids:
+        stats = await _load_stats_for_entry(entry_id)
+        if not stats:
             continue
-        except Exception as e:
-            errors.append(str(e))
 
-    if not players and errors:
-        raise RuntimeError(errors[0])
+        user_id = stats["roblox_user_id"]
+        if user_id in seen_user_ids:
+            continue
+        seen_user_ids.add(user_id)
+        players.append(stats)
 
     players.sort(key=lambda p: (p.get("kills", 0), calculate_kd(p)), reverse=True)
+    top_players = players[:LEADERBOARD_LIMIT]
+
+    user_ids = [p["roblox_user_id"] for p in top_players]
+    profiles = await fetch_roblox_profiles_by_ids(user_ids)
 
     ranked = []
-    for i, player in enumerate(players, start=1):
+    for i, stats in enumerate(top_players, start=1):
+        user_id = stats["roblox_user_id"]
+        profile = profiles.get(user_id, default_roblox_profile(user_id))
+        stats.update(
+            {
+                "username": profile["username"],
+                "display_name": profile["display_name"],
+                "avatar_url": profile.get("avatar_url"),
+            }
+        )
+
         ranked.append(
             {
                 "rank": i,
-                "username": player["username"],
-                "display_name": player.get("display_name", player["username"]),
-                "avatar_url": player.get("avatar_url"),
-                "roblox_user_id": player.get("roblox_user_id"),
-                "kills": player.get("kills", 0),
-                "deaths": player.get("deaths", 0),
-                "kd_ratio": calculate_kd(player),
+                "username": stats["username"],
+                "display_name": stats.get("display_name", stats["username"]),
+                "avatar_url": stats.get("avatar_url"),
+                "roblox_user_id": user_id,
+                "kills": stats.get("kills", 0),
+                "deaths": stats.get("deaths", 0),
+                "kd_ratio": calculate_kd(stats),
             }
         )
+
     return ranked
