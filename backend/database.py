@@ -50,6 +50,7 @@ def _attach_profile(stats: dict, profile: dict) -> dict:
             "username": profile["username"],
             "display_name": profile["display_name"],
             "avatar_url": profile.get("avatar_url"),
+            "malformed": bool(stats.get("malformed", False)),
         }
     )
     return add_combat_stats(stats)

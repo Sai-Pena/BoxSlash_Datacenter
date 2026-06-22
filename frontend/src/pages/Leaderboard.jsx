@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getLeaderboard } from '../api'
+import MalformedIndicator from '../components/MalformedIndicator'
 import { formatKd, robloxProfileUrl } from '../utils'
 
 export default function Leaderboard() {
@@ -59,7 +60,10 @@ export default function Leaderboard() {
             <tbody>
               {rows.map((row) => (
                 <tr key={`${row.username}-${row.roblox_user_id}`} className={`${row.rank <= 3 ? `top-${row.rank}` : ''} ${row.malformed ? 'malformed-row' : ''}`}>
-                  <td className="rank-cell">#{row.rank}</td>
+                  <td className="rank-cell">
+                    {row.malformed && <MalformedIndicator variant="icon" />}
+                    #{row.rank}
+                  </td>
                   <td className="player-cell">
                     {row.avatar_url ? (
                       <img src={row.avatar_url} alt="" className="avatar-small" />
@@ -68,9 +72,7 @@ export default function Leaderboard() {
                     )}
                     <div className="player-name-links">
                       <Link to={`/lookup?user=${row.username}`}>{row.display_name}</Link>
-                      {row.malformed && (
-                        <span className="malformed-tag">MALFORMED DATA</span>
-                      )}
+                      {row.malformed && <MalformedIndicator />}
                       {row.roblox_user_id && (
                         <a
                           href={robloxProfileUrl(row.roblox_user_id)}
@@ -84,13 +86,25 @@ export default function Leaderboard() {
                       )}
                     </div>
                   </td>
-                  <td className="kills-cell">{(row.kills ?? 0).toLocaleString()}</td>
-                  <td className="deaths-cell">{(row.deaths ?? 0).toLocaleString()}</td>
-                  <td className="kd-cell">{formatKd(row)}</td>
+                  <td className={`kills-cell ${row.malformed ? 'malformed-stat' : ''}`}>
+                    {(row.kills ?? 0).toLocaleString()}
+                  </td>
+                  <td className={`deaths-cell ${row.malformed ? 'malformed-stat' : ''}`}>
+                    {(row.deaths ?? 0).toLocaleString()}
+                  </td>
+                  <td className={`kd-cell ${row.malformed ? 'malformed-stat' : ''}`}>
+                    {formatKd(row)}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          {rows.some((row) => row.malformed) && (
+            <p className="malformed-legend">
+              <MalformedIndicator variant="icon" />
+              Malformed entries have unreadable PlayerStore data — stats shown are placeholders (0/0/0).
+            </p>
+          )}
         </div>
       )}
     </div>

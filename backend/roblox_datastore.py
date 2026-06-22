@@ -6,6 +6,7 @@ Docs: https://create.roblox.com/docs/cloud/guides/data-stores
 
 import os
 import re
+from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import quote
 
@@ -90,29 +91,34 @@ def safe_float(value, default: float = 0) -> float:
         return default
 
 
-def extract_data_table(profile_entry: dict) -> dict | None:
-    """
-    Pull the Data table from a PlayerStore entry.
-    Returns None if the shape is too broken to use.
-    """
-    if not isinstance(profile_entry, dict):
-        return None
+def safe_str(value, default: str = "") -> str:
+    if value is None:
+        return default
+    return str(value)
 
-    raw = profile_entry.get("value", profile_entry)
-    if not isinstance(raw, dict):
-        return None
 
-    data = raw.get("Data")
-    if data is None:
-        # Some older entries might store stats at the top level
-        if any(key in raw for key in ("Kills", "Deaths", "kills", "deaths")):
-            return raw
-        return None
+def parse_owned_gamepasses(value) -> list[str]:
+    if not value:
+        return []
+    if isinstance(value, list):
+        return [str(item) for item in value]
+    if isinstance(value, dict):
+        return [str(key) for key in value.keys()]
+    return []
 
-    if not isinstance(data, dict):
-        return None
 
-    return data
+def parse_timestamp(value) -> str | None:
+    """Normalize Roblox timestamps to ISO-8601 UTC strings."""
+    if value is None:
+        return None
+    try:
+        if isinstance(value, (int, float)):
+            return datetime.fromtimestamp(value, tz=timezone.utc).isoformat()
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    except (TypeError, ValueError, OSError):
+        return None
+    return None
 
 
 def parse_stats_from_data(data: dict, user_id: int) -> dict | None:
@@ -138,9 +144,48 @@ def parse_stats_from_data(data: dict, user_id: int) -> dict | None:
             "style_points": safe_int(data.get("StylePoints")),
             "cash": safe_int(data.get("Cash")),
             "playtime_hours": round(playtime_seconds / 3600, 1) if playtime_seconds else 0,
+            "playtime_seconds": playtime_seconds,
+            "elo": safe_int(data.get("Elo", data.get("elo"))),
+            "rank": safe_str(data.get("Rank", data.get("rank")), "Unranked"),
+            "highest_rank": safe_str(data.get("HighestRank", data.get("highest_rank")), "Unranked"),
+            "matches_played": safe_int(data.get("MatchesPlayed", data.get("matches_played"))),
+            "owned_gamepasses": parse_owned_gamepasses(data.get("OwnedGamepasses")),
+            "last_server_id": safe_str(data.get("LastServerId")) or None,
+            "last_joined": parse_timestamp(data.get("LastJoined")),
+            "last_disconnected": parse_timestamp(data.get("LastDisconnected")),
+            "last_session_duration_seconds": (
+                safe_int(data.get("LastSessionDuration"))
+                if data.get("LastSessionDuration") is not None
+                else None
+            ),
         }
     except Exception:
         return None
+
+
+def extract_data_table(profile_entry: dict) -> dict | None:
+    """
+    Pull the Data table from a PlayerStore entry.
+    Returns None if the shape is too broken to use.
+    """
+    if not isinstance(profile_entry, dict):
+        return None
+
+    raw = profile_entry.get("value", profile_entry)
+    if not isinstance(raw, dict):
+        return None
+
+    data = raw.get("Data")
+    if data is None:
+        # Some older entries might store stats at the top level
+        if any(key in raw for key in ("Kills", "Deaths", "kills", "deaths")):
+            return raw
+        return None
+
+    if not isinstance(data, dict):
+        return None
+
+    return data
 
 
 async def list_all_entry_ids() -> list[str]:
@@ -243,6 +288,16 @@ def malformed_stats(user_id: int) -> dict:
         "style_points": 0,
         "cash": 0,
         "playtime_hours": 0,
+        "playtime_seconds": 0,
+        "elo": 0,
+        "rank": "Unranked",
+        "highest_rank": "Unranked",
+        "matches_played": 0,
+        "owned_gamepasses": [],
+        "last_server_id": None,
+        "last_joined": None,
+        "last_disconnected": None,
+        "last_session_duration_seconds": None,
         "malformed": True,
     }
 
