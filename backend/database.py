@@ -2,6 +2,7 @@
 Player stats service — loads live data from Roblox PlayerStore.
 """
 
+import asyncio
 import json
 from pathlib import Path
 
@@ -111,59 +112,95 @@ async def _load_stats_for_entry(entry_id: str) -> dict | None:
     return stats
 
 
-async def fetch_leaderboard() -> list[dict]:
-    """Build top 100 leaderboard from every PlayerStore entry."""
-    entry_ids = await list_all_entry_ids()
-    if not entry_ids:
-        return []
+async def _load_all_player_stats(entry_ids: list[str], concurrency: int = 12) -> list[dict]:
+    """Load stats for many datastore entries in parallel."""
+    semaphore = asyncio.Semaphore(concurrency)
 
+    async def load_one(entry_id: str) -> dict | None:
+        async with semaphore:
+            return await _load_stats_for_entry(entry_id)
+
+    results = await asyncio.gather(*(load_one(entry_id) for entry_id in entry_ids))
     players: list[dict] = []
     seen_user_ids: set[int] = set()
 
-    for entry_id in entry_ids:
-        stats = await _load_stats_for_entry(entry_id)
+    for stats in results:
         if not stats:
             continue
-
         user_id = stats["roblox_user_id"]
         if user_id in seen_user_ids:
             continue
         seen_user_ids.add(user_id)
         players.append(stats)
 
-    # Valid stats first (by kills), malformed entries sink to the bottom
     players.sort(
         key=lambda p: (p.get("malformed", False), -p.get("kills", 0), -calculate_kd(p))
     )
-    top_players = players[:LEADERBOARD_LIMIT]
+    return players
 
-    user_ids = [p["roblox_user_id"] for p in top_players]
+
+def _stats_row(rank: int, stats: dict, profile: dict | None = None) -> dict:
+    user_id = stats["roblox_user_id"]
+    if profile:
+        username = profile["username"]
+        display_name = profile.get("display_name", username)
+        avatar_url = profile.get("avatar_url")
+    else:
+        username = f"user{user_id}"
+        display_name = f"Player {user_id}"
+        avatar_url = None
+
+    return {
+        "rank": rank,
+        "username": username,
+        "display_name": display_name,
+        "avatar_url": avatar_url,
+        "roblox_user_id": user_id,
+        "kills": stats.get("kills", 0),
+        "deaths": stats.get("deaths", 0),
+        "kd_ratio": calculate_kd(stats),
+        "malformed": stats.get("malformed", False),
+        "profiles_pending": profile is None,
+    }
+
+
+async def fetch_leaderboard_stats(limit: int = LEADERBOARD_LIMIT) -> list[dict]:
+    """Build ranked leaderboard rows from PlayerStore stats only (no Roblox profile fetch)."""
+    entry_ids = await list_all_entry_ids()
+    if not entry_ids:
+        return []
+
+    top_players = (await _load_all_player_stats(entry_ids))[:limit]
+    return [_stats_row(i, stats) for i, stats in enumerate(top_players, start=1)]
+
+
+async def fetch_leaderboard_profiles(user_ids: list[int]) -> dict[int, dict]:
+    """Fetch usernames, display names, and avatars for leaderboard enrichment."""
+    if not user_ids:
+        return {}
+    return await fetch_roblox_profiles_by_ids(user_ids)
+
+
+async def fetch_leaderboard(include_profiles: bool = True) -> list[dict]:
+    """Build top 100 leaderboard, optionally enriched with Roblox profile data."""
+    rows = await fetch_leaderboard_stats()
+    if not include_profiles or not rows:
+        return rows
+
+    user_ids = [row["roblox_user_id"] for row in rows]
     profiles = await fetch_roblox_profiles_by_ids(user_ids)
 
-    ranked = []
-    for i, stats in enumerate(top_players, start=1):
-        user_id = stats["roblox_user_id"]
+    enriched = []
+    for row in rows:
+        user_id = row["roblox_user_id"]
         profile = profiles.get(user_id, default_roblox_profile(user_id))
-        stats.update(
+        enriched.append(
             {
+                **row,
                 "username": profile["username"],
-                "display_name": profile["display_name"],
+                "display_name": profile.get("display_name", profile["username"]),
                 "avatar_url": profile.get("avatar_url"),
+                "profiles_pending": False,
             }
         )
-
-        ranked.append(
-            {
-                "rank": i,
-                "username": stats["username"],
-                "display_name": stats.get("display_name", stats["username"]),
-                "avatar_url": stats.get("avatar_url"),
-                "roblox_user_id": user_id,
-                "kills": stats.get("kills", 0),
-                "deaths": stats.get("deaths", 0),
-                "kd_ratio": calculate_kd(stats),
-                "malformed": stats.get("malformed", False),
-            }
-        )
-
-    return ranked
+    return enriched

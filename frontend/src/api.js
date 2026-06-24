@@ -47,8 +47,17 @@ async function apiGet(path) {
   return response.json()
 }
 
-export function getLeaderboard() {
-  return apiGet('/api/leaderboard')
+export function getLeaderboard({ profiles = true } = {}) {
+  const params = profiles ? '' : '?profiles=false'
+  return apiGet(`/api/leaderboard${params}`)
+}
+
+export function getLeaderboardProfiles(userIds) {
+  if (!userIds.length) {
+    return Promise.resolve({ profiles: {} })
+  }
+  const ids = userIds.join(',')
+  return apiGet(`/api/leaderboard/profiles?ids=${encodeURIComponent(ids)}`)
 }
 
 export function getPlayer(username) {

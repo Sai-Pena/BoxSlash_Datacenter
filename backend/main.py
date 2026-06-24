@@ -16,7 +16,7 @@ from dotenv import load_dotenv
 # Load .env BEFORE other local imports so the API key is available
 load_dotenv(Path(__file__).parent / ".env")
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 import database as db
@@ -77,10 +77,42 @@ async def get_player(username: str):
 
 
 @app.get("/api/leaderboard")
-async def leaderboard():
-    """Return tracked players sorted by kills, then K/D ratio."""
+async def leaderboard(profiles: bool = Query(True, description="Fetch Roblox usernames and avatars")):
+    """Return players sorted by kills, then K/D ratio."""
     try:
-        return {"leaderboard": await db.fetch_leaderboard()}
+        return {"leaderboard": await db.fetch_leaderboard(include_profiles=profiles)}
+    except RuntimeError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Roblox API error: {e}")
+
+
+@app.get("/api/leaderboard/profiles")
+async def leaderboard_profiles(ids: str = Query(..., description="Comma-separated Roblox user IDs")):
+    """Fetch profile details for leaderboard rows (usernames, avatars)."""
+    try:
+        user_ids = [int(part.strip()) for part in ids.split(",") if part.strip()]
+    except ValueError:
+        raise HTTPException(status_code=400, detail="ids must be comma-separated numbers")
+
+    if not user_ids:
+        return {"profiles": {}}
+
+    if len(user_ids) > 100:
+        raise HTTPException(status_code=400, detail="Maximum 100 user IDs per request")
+
+    try:
+        profiles = await db.fetch_leaderboard_profiles(user_ids)
+        return {
+            "profiles": {
+                str(user_id): {
+                    "username": profile["username"],
+                    "display_name": profile.get("display_name", profile["username"]),
+                    "avatar_url": profile.get("avatar_url"),
+                }
+                for user_id, profile in profiles.items()
+            }
+        }
     except RuntimeError as e:
         raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
