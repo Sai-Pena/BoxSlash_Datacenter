@@ -186,7 +186,7 @@ export default function Leaderboard() {
         <div>
           <h1>Kill Leaderboard</h1>
           <p className="page-desc">
-            Top 100 players ranked by kills. Stats load first, then names and avatars.
+            Top 100 players ranked by kills.
           </p>
         </div>
         <button className="btn btn-secondary" onClick={loadData} disabled={statsLoading}>
@@ -229,7 +229,7 @@ export default function Leaderboard() {
           {hasMalformed && !statsLoading && (
             <p className="malformed-legend">
               <MalformedIndicator variant="icon" />
-              Malformed entries have unreadable PlayerStore data — stats shown are placeholders (0/0/0).
+              Malformed entries have unreadable PlayerStore data.. stats shown are placeholders (0/0/0).
             </p>
           )}
         </div>

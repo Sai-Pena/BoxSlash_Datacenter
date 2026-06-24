@@ -11,7 +11,7 @@ export default function Home() {
           <span className="home-title-accent">SLASH</span>
         </h1>
         <p className="home-lead">
-          Kill stats, K/D, and full player profiles — pulled live from PlayerStore.
+          Kill stats, K/D, and full player profiles.
         </p>
 
         <nav className="home-nav">
@@ -25,12 +25,17 @@ export default function Home() {
             <span className="home-nav-sub">Search by username</span>
             <span className="home-nav-arrow" aria-hidden>→</span>
           </Link>
+          <Link to="/compare" className="home-nav-item">
+            <span className="home-nav-heading">Compare</span>
+            <span className="home-nav-sub">Head-to-head stats</span>
+            <span className="home-nav-arrow" aria-hidden>→</span>
+          </Link>
         </nav>
       </section>
 
       <div className="home-footnote">
         <span className="home-footnote-dot" aria-hidden />
-        Live game data — updates when players earn kills in-game
+        Live game data * updates when players earn kills in-game
       </div>
     </div>
   )

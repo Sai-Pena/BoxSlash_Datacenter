@@ -2,6 +2,7 @@ import { Routes, Route, Link, useLocation } from 'react-router-dom'
 import Home from './pages/Home'
 import Leaderboard from './pages/Leaderboard'
 import PlayerLookup from './pages/PlayerLookup'
+import Compare from './pages/Compare'
 
 function NavBar() {
   const location = useLocation()
@@ -22,6 +23,7 @@ function NavBar() {
           <Link to="/" className={navClass('/')}>Home</Link>
           <Link to="/leaderboard" className={navClass('/leaderboard')}>Leaderboard</Link>
           <Link to="/lookup" className={navClass('/lookup')}>Profiles</Link>
+          <Link to="/compare" className={navClass('/compare')}>Compare</Link>
         </nav>
       </div>
     </header>
@@ -37,6 +39,7 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/lookup" element={<PlayerLookup />} />
+          <Route path="/compare" element={<Compare />} />
         </Routes>
       </main>
       <footer className="footer">
