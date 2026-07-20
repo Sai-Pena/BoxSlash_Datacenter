@@ -1,81 +1,28 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { getPlayer } from '../api'
-import RobloxProfileButton from '../components/RobloxProfileButton'
+import LoadingMark from '../components/LoadingMark'
 import MalformedIndicator from '../components/MalformedIndicator'
-import { formatDuration, formatKd, formatTimestamp, rankClass } from '../utils'
+import RobloxProfileButton from '../components/RobloxProfileButton'
+import { formatDuration, formatKd, formatTimestamp } from '../utils'
 
-function StatBox({ label, value, highlight, sub }) {
+function StatRow({ label, value, sub }) {
   return (
-    <div className={`profile-stat-box ${highlight || ''}`}>
-      <div className="profile-stat-value">{value}</div>
-      <div className="profile-stat-label">{label}</div>
-      {sub && <div className="profile-stat-sub">{sub}</div>}
+    <div className="stat-row">
+      <span className="stat-row-label">{label}</span>
+      <span className="stat-row-value">
+        {value}
+        {sub && <span className="stat-row-sub"> {sub}</span>}
+      </span>
     </div>
   )
 }
 
-function QuickStat({ label, value, variant }) {
+function StatSection({ title, children }) {
   return (
-    <div className={`profile-quick-stat profile-quick-stat--${variant}`}>
-      <span className="profile-quick-stat-value">{value}</span>
-      <span className="profile-quick-stat-label">{label}</span>
-    </div>
-  )
-}
-
-function KnifeSplit({ throwKills, slashKills }) {
-  const total = throwKills + slashKills
-  const throwPct = total > 0 ? Math.round((throwKills / total) * 100) : 50
-  const slashPct = total > 0 ? 100 - throwPct : 50
-
-  return (
-    <div className="profile-split">
-      <div className="profile-split-header">
-        <span>Throw {throwKills.toLocaleString()}</span>
-        <span className="profile-split-title">Kill Style</span>
-        <span>Slash {slashKills.toLocaleString()}</span>
-      </div>
-      <div className="profile-split-bar">
-        <div className="profile-split-throw" style={{ width: `${throwPct}%` }} />
-        <div className="profile-split-slash" style={{ width: `${slashPct}%` }} />
-      </div>
-      <div className="profile-split-footer">
-        <span>{throwPct}% throws</span>
-        <span>{slashPct}% slashes</span>
-      </div>
-    </div>
-  )
-}
-
-function ProfileSkeleton() {
-  return (
-    <div className="profile-card profile-card--loading">
-      <div className="profile-hero">
-        <div className="profile-hero-banner skeleton-shimmer" />
-        <div className="profile-hero-body">
-          <div className="profile-avatar-wrap skeleton-shimmer" />
-          <div className="profile-hero-text">
-            <div className="skeleton-line skeleton-line--lg skeleton-shimmer" />
-            <div className="skeleton-line skeleton-shimmer" />
-            <div className="skeleton-line skeleton-line--sm skeleton-shimmer" />
-          </div>
-        </div>
-      </div>
-      <div className="profile-quick-stats">
-        {[1, 2, 3].map((n) => (
-          <div key={n} className="profile-quick-stat skeleton-shimmer" />
-        ))}
-      </div>
-    </div>
-  )
-}
-
-function StatSection({ title, accent, children }) {
-  return (
-    <section className={`profile-section profile-section--${accent}`}>
+    <section className="profile-section">
       <h3 className="profile-section-title">{title}</h3>
-      {children}
+      <div className="stat-rows">{children}</div>
     </section>
   )
 }
@@ -112,7 +59,7 @@ export default function PlayerLookup() {
       setUsername(preset)
       search(preset)
     }
-  }, []) // only on first load
+  }, [])
 
   function handleSubmit(e) {
     e.preventDefault()
@@ -133,16 +80,10 @@ export default function PlayerLookup() {
 
   return (
     <div className="page profile-page">
-      <div className="profile-page-header">
-        <div>
-          <h1>Player Profile</h1>
-          <p className="page-desc">
-            Search by Roblox username. Stats load live from PlayerStore.
-          </p>
-        </div>
-      </div>
+      <h1>Player Profile</h1>
+      <p className="page-desc">Search by Roblox username.</p>
 
-      <form className="search-form profile-search" onSubmit={handleSubmit}>
+      <form className="search-form" onSubmit={handleSubmit}>
         <input
           type="text"
           placeholder="Enter username..."
@@ -155,147 +96,103 @@ export default function PlayerLookup() {
       </form>
 
       {error && <p className="status error">{error}</p>}
-
-      {loading && <ProfileSkeleton />}
+      {loading && <LoadingMark label="Loading profile" />}
 
       {!loading && !player && !error && (
-        <div className="profile-empty">
-          <div className="profile-empty-icon">◈</div>
-          <p>Search a player to view their full stat card.</p>
-        </div>
+        <p className="empty-hint">Search a player to view their stats.</p>
       )}
 
       {!loading && player && (
-        <div className={`profile-card ${player.malformed ? 'profile-card--malformed' : ''}`}>
+        <div className={`profile-sheet ${player.malformed ? 'profile-sheet--malformed' : ''}`}>
           {player.malformed && <MalformedIndicator variant="banner" />}
-          <div className="profile-hero">
-            <div className="profile-hero-banner" />
-            <div className="profile-hero-body">
-              <div className="profile-avatar-wrap">
-                {player.avatar_url ? (
-                  <img src={player.avatar_url} alt="" className="profile-avatar" />
-                ) : (
-                  <div className="profile-avatar profile-avatar--placeholder" />
+
+          <header className="profile-head">
+            {player.avatar_url ? (
+              <img src={player.avatar_url} alt="" className="profile-avatar" />
+            ) : (
+              <div className="profile-avatar profile-avatar--placeholder" />
+            )}
+            <div className="profile-head-text">
+              <p className="profile-rank-line">
+                {player.rank || 'Unranked'}
+                {player.highest_rank && player.highest_rank !== player.rank && (
+                  <span className="profile-peak"> · peak {player.highest_rank}</span>
                 )}
+              </p>
+              <h2 className="profile-display-name">{player.display_name}</h2>
+              <p className="profile-username">@{player.username}</p>
+              {player.malformed && <MalformedIndicator />}
+              <div className="profile-actions">
+                <RobloxProfileButton userId={player.roblox_user_id} />
+                <Link to="/leaderboard" className="btn btn-secondary">Leaderboard</Link>
               </div>
-              <div className="profile-hero-text">
-                <p className="profile-eyebrow">BoxSlash Operative</p>
-                <div className="profile-rank-row">
-                  <span className={`profile-rank-badge profile-rank-badge--${rankClass(player.rank)}`}>
-                    {player.rank || 'Unranked'}
-                  </span>
-                  {(player.highest_rank && player.highest_rank !== player.rank) && (
-                    <span className="profile-peak-rank">Peak: {player.highest_rank}</span>
-                  )}
-                </div>
-                <h2 className="profile-display-name">{player.display_name}</h2>
-                <p className="profile-username">@{player.username}</p>
-                {player.malformed && <MalformedIndicator />}
-                <div className="profile-actions">
-                  <RobloxProfileButton userId={player.roblox_user_id} />
-                  <Link to="/leaderboard" className="btn btn-secondary">Leaderboard</Link>
-                </div>
-              </div>
+            </div>
+          </header>
+
+          <div className="profile-summary">
+            <div className="profile-summary-item">
+              <span className="profile-summary-value">{player.kills.toLocaleString()}</span>
+              <span className="profile-summary-label">Kills</span>
+            </div>
+            <div className="profile-summary-item">
+              <span className="profile-summary-value">{player.deaths.toLocaleString()}</span>
+              <span className="profile-summary-label">Deaths</span>
+            </div>
+            <div className="profile-summary-item">
+              <span className="profile-summary-value">{kd}</span>
+              <span className="profile-summary-label">K/D</span>
+            </div>
+            <div className="profile-summary-item">
+              <span className="profile-summary-value">{(player.elo ?? 0).toLocaleString()}</span>
+              <span className="profile-summary-label">Elo</span>
             </div>
           </div>
 
-          <div className="profile-quick-stats profile-quick-stats--4">
-            <QuickStat label="Kills" value={player.kills.toLocaleString()} variant="kills" />
-            <QuickStat label="Deaths" value={player.deaths.toLocaleString()} variant="deaths" />
-            <QuickStat label="K/D Ratio" value={kd} variant="kd" />
-            <QuickStat label="Elo" value={(player.elo ?? 0).toLocaleString()} variant="elo" />
-          </div>
+          <StatSection title="Competitive">
+            <StatRow label="Elo" value={(player.elo ?? 0).toLocaleString()} />
+            <StatRow label="Rank" value={player.rank || 'Unranked'} />
+            <StatRow label="Highest Rank" value={player.highest_rank || 'Unranked'} />
+            <StatRow label="Matches Played" value={(player.matches_played ?? 0).toLocaleString()} />
+          </StatSection>
 
-          <div className="profile-sections">
-            <StatSection title="Competitive" accent="competitive">
-              <div className="profile-stat-grid profile-stat-grid--4">
-                <StatBox label="Elo" value={(player.elo ?? 0).toLocaleString()} highlight="highlight-elo" />
-                <StatBox label="Rank" value={player.rank || 'Unranked'} highlight="highlight-rank" />
-                <StatBox label="Highest Rank" value={player.highest_rank || 'Unranked'} />
-                <StatBox label="Matches Played" value={(player.matches_played ?? 0).toLocaleString()} />
-              </div>
-            </StatSection>
+          <StatSection title="Knife">
+            <StatRow label="Throw Kills" value={throwKills.toLocaleString()} />
+            <StatRow label="Slash Kills" value={slashKills.toLocaleString()} />
+            <StatRow label="Throw Hits" value={(player.throw_hits ?? 0).toLocaleString()} />
+            <StatRow label="Slash Hits" value={(player.slash_hits ?? 0).toLocaleString()} />
+            <StatRow label="Longest Streak" value={(player.longest_streak ?? 0).toLocaleString()} />
+            <StatRow label="MVPs" value={(player.mvps ?? 0).toLocaleString()} />
+          </StatSection>
 
-            <StatSection title="Knife Stats" accent="knife">
-              <div className="profile-stat-grid">
-                <StatBox label="Throw Kills" value={throwKills.toLocaleString()} />
-                <StatBox label="Slash Kills" value={slashKills.toLocaleString()} />
-                <StatBox label="Throw Hits" value={(player.throw_hits ?? 0).toLocaleString()} />
-                <StatBox label="Slash Hits" value={(player.slash_hits ?? 0).toLocaleString()} />
-                <StatBox label="Longest Streak" value={(player.longest_streak ?? 0).toLocaleString()} />
-                <StatBox label="MVPs" value={(player.mvps ?? 0).toLocaleString()} />
-              </div>
-              <KnifeSplit throwKills={throwKills} slashKills={slashKills} />
-            </StatSection>
+          <StatSection title="Aerial">
+            <StatRow label="Air Kills" value={(player.air_kills ?? 0).toLocaleString()} />
+            <StatRow label="Avg Air Time" value={`${player.avg_air_time ?? 0}s`} />
+            <StatRow label="Air Kill Rate" value={`${airKillRate}%`} />
+          </StatSection>
 
-            <StatSection title="Aerial Combat" accent="air">
-              <div className="profile-stat-grid profile-stat-grid--3">
-                <StatBox label="Air Kills" value={(player.air_kills ?? 0).toLocaleString()} highlight="highlight-air" />
-                <StatBox
-                  label="Avg Air Time"
-                  value={`${player.avg_air_time ?? 0}s`}
-                  sub="seconds in air"
-                />
-                <StatBox label="Air Kill Rate" value={`${airKillRate}%`} highlight="highlight-air" />
-              </div>
-              <div className="profile-meter">
-                <div className="profile-meter-header">
-                  <span>Air kill efficiency</span>
-                  <span>{airKillRate}%</span>
-                </div>
-                <div className="profile-meter-track">
-                  <div
-                    className="profile-meter-fill profile-meter-fill--air"
-                    style={{ width: `${Math.min(airKillRate, 100)}%` }}
-                  />
-                </div>
-              </div>
-            </StatSection>
+          <StatSection title="Career">
+            <StatRow label="Style Points" value={(player.style_points ?? 0).toLocaleString()} />
+            <StatRow label="Cash" value={(player.cash ?? 0).toLocaleString()} />
+            <StatRow label="Playtime" value={`${player.playtime_hours ?? 0}h`} />
+            <StatRow label="Total Time" value={formatDuration(player.playtime_seconds ?? 0)} />
+            {gamepasses.length > 0 && (
+              <StatRow label="Gamepasses" value={gamepasses.join(', ')} />
+            )}
+          </StatSection>
 
-            <StatSection title="Career" accent="career">
-              <div className="profile-stat-grid profile-stat-grid--4">
-                <StatBox label="Style Points" value={(player.style_points ?? 0).toLocaleString()} />
-                <StatBox label="Cash" value={(player.cash ?? 0).toLocaleString()} />
-                <StatBox
-                  label="Playtime"
-                  value={`${player.playtime_hours ?? 0}h`}
-                  sub="total hours"
-                />
-                <StatBox
-                  label="Total Time"
-                  value={formatDuration(player.playtime_seconds ?? 0)}
-                  sub="played"
-                />
-              </div>
-              {gamepasses.length > 0 && (
-                <div className="profile-gamepasses">
-                  <p className="profile-gamepasses-label">Owned Gamepasses</p>
-                  <div className="profile-gamepass-list">
-                    {gamepasses.map((pass) => (
-                      <span key={pass} className="profile-gamepass-chip">{pass}</span>
-                    ))}
-                  </div>
-                </div>
+          {hasActivity && (
+            <StatSection title="Recent Activity">
+              <StatRow label="Last Joined" value={formatTimestamp(player.last_joined)} />
+              <StatRow label="Last Disconnected" value={formatTimestamp(player.last_disconnected)} />
+              <StatRow
+                label="Last Session"
+                value={formatDuration(player.last_session_duration_seconds)}
+              />
+              {player.last_server_id && (
+                <StatRow label="Last Server" value={player.last_server_id} />
               )}
             </StatSection>
-
-            {hasActivity && (
-              <StatSection title="Recent Activity" accent="activity">
-                <div className="profile-stat-grid profile-stat-grid--2">
-                  <StatBox label="Last Joined" value={formatTimestamp(player.last_joined)} />
-                  <StatBox label="Last Disconnected" value={formatTimestamp(player.last_disconnected)} />
-                  <StatBox
-                    label="Last Session"
-                    value={formatDuration(player.last_session_duration_seconds)}
-                    sub="duration"
-                  />
-                  {player.last_server_id && (
-                    <StatBox label="Last Server" value={player.last_server_id} sub="job id" />
-                  )}
-                </div>
-              </StatSection>
-            )}
-          </div>
+          )}
         </div>
       )}
     </div>

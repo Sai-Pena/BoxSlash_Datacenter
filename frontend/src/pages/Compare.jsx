@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { getPlayer } from '../api'
+import LoadingMark from '../components/LoadingMark'
 import MalformedIndicator from '../components/MalformedIndicator'
-import { formatDuration, formatKd } from '../utils'
+import { formatKd } from '../utils'
 
 const STAT_SECTIONS = [
   {
@@ -76,8 +77,7 @@ function compareWinner(left, right, stat) {
   const b = numericValue(right, stat)
   if (a === b) return 'tie'
   const leftWins = stat.higherBetter ? a > b : a < b
-  if (leftWins) return 'left'
-  return 'right'
+  return leftWins ? 'left' : 'right'
 }
 
 function countWins(left, right) {
@@ -93,22 +93,11 @@ function countWins(left, right) {
   return { leftWins, rightWins }
 }
 
-function PlayerHeader({ player, side, wins, loading }) {
-  if (loading) {
-    return (
-      <div className={`compare-player compare-player--${side}`}>
-        <div className="compare-avatar compare-avatar--loading skeleton-shimmer" />
-        <div className="skeleton-shimmer skeleton-line skeleton-line--lg" />
-        <div className="skeleton-shimmer skeleton-line skeleton-line--sm" />
-      </div>
-    )
-  }
-
+function PlayerHeader({ player, side, wins }) {
   if (!player) {
     return (
-      <div className={`compare-player compare-player--${side} compare-player--empty`}>
-        <div className="compare-avatar compare-avatar--placeholder" />
-        <p className="compare-player-empty">No player loaded</p>
+      <div className={`compare-player compare-player--${side}`}>
+        <p className="compare-player-empty">—</p>
       </div>
     )
   }
@@ -128,7 +117,7 @@ function PlayerHeader({ player, side, wins, loading }) {
       <p className="compare-player-user">@{player.username}</p>
       {player.malformed && <MalformedIndicator />}
       <Link to={`/lookup?user=${player.username}`} className="compare-profile-link">
-        View profile →
+        View profile
       </Link>
     </div>
   )
@@ -201,7 +190,7 @@ export default function Compare() {
       setPlayerTwo(p2)
       compare(p1, p2)
     }
-  }, []) // only on first load
+  }, [])
 
   function handleSubmit(e) {
     e.preventDefault()
@@ -215,7 +204,7 @@ export default function Compare() {
     <div className="page compare-page">
       <h1>Compare Players</h1>
       <p className="page-desc">
-        Pit two players head-to-head. Green highlights the better stat in each row.
+        Enter two usernames. Better stats are marked in each row.
       </p>
 
       <form className="compare-form" onSubmit={handleSubmit}>
@@ -229,7 +218,7 @@ export default function Compare() {
             onChange={(e) => setPlayerOne(e.target.value)}
           />
         </div>
-        <span className="compare-vs" aria-hidden>VS</span>
+        <span className="compare-vs" aria-hidden>/</span>
         <div className="compare-input-group">
           <label htmlFor="compare-p2">Player 2</label>
           <input
@@ -246,55 +235,47 @@ export default function Compare() {
       </form>
 
       {error && <p className="status error">{error}</p>}
+      {loading && <LoadingMark label="Comparing players" />}
 
-      {(loading || hasResult) && (
-        <div className="compare-card">
+      {!loading && hasResult && (
+        <div className="compare-sheet">
           <div className="compare-headers">
-            <PlayerHeader player={left} side="left" wins={wins} loading={loading} />
+            <PlayerHeader player={left} side="left" wins={wins} />
             <div className="compare-score-center">
-              {hasResult && !loading && (
-                <>
-                  <p className="compare-score-label">Stat wins</p>
-                  <p className="compare-score">
-                    <span className={wins.leftWins > wins.rightWins ? 'compare-score--lead' : ''}>
-                      {wins.leftWins}
-                    </span>
-                    <span className="compare-score-divider">–</span>
-                    <span className={wins.rightWins > wins.leftWins ? 'compare-score--lead' : ''}>
-                      {wins.rightWins}
-                    </span>
-                  </p>
-                </>
-              )}
-              {loading && <p className="compare-score-label">Loading...</p>}
+              <p className="compare-score-label">Stat wins</p>
+              <p className="compare-score">
+                <span className={wins.leftWins > wins.rightWins ? 'compare-score--lead' : ''}>
+                  {wins.leftWins}
+                </span>
+                <span className="compare-score-divider">/</span>
+                <span className={wins.rightWins > wins.leftWins ? 'compare-score--lead' : ''}>
+                  {wins.rightWins}
+                </span>
+              </p>
             </div>
-            <PlayerHeader player={right} side="right" wins={wins} loading={loading} />
+            <PlayerHeader player={right} side="right" wins={wins} />
           </div>
 
-          {!loading && hasResult && (
-            <div className="compare-stats">
-              {STAT_SECTIONS.map((section) => (
-                <section key={section.title} className="compare-section">
-                  <h3 className="compare-section-title">{section.title}</h3>
-                  {section.stats.map((stat) => (
-                    <CompareRow
-                      key={stat.key}
-                      stat={stat}
-                      left={left}
-                      right={right}
-                    />
-                  ))}
-                </section>
-              ))}
-            </div>
-          )}
+          <div className="compare-stats">
+            {STAT_SECTIONS.map((section) => (
+              <section key={section.title} className="compare-section">
+                <h3 className="compare-section-title">{section.title}</h3>
+                {section.stats.map((stat) => (
+                  <CompareRow
+                    key={stat.key}
+                    stat={stat}
+                    left={left}
+                    right={right}
+                  />
+                ))}
+              </section>
+            ))}
+          </div>
         </div>
       )}
 
       {!loading && !hasResult && !error && (
-        <div className="compare-empty">
-          <p>Enter two usernames above to see a head-to-head comparison.</p>
-        </div>
+        <p className="empty-hint">Enter two usernames above to compare.</p>
       )}
     </div>
   )

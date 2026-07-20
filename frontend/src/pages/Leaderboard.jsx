@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getLeaderboard, getLeaderboardProfiles } from '../api'
+import LoadingMark from '../components/LoadingMark'
 import MalformedIndicator from '../components/MalformedIndicator'
 import { formatKd, robloxProfileUrl } from '../utils'
 
@@ -10,9 +11,6 @@ const PROFILE_CHUNK = 25
 function AvatarCell({ row }) {
   if (row.avatar_url) {
     return <img src={row.avatar_url} alt="" className="avatar-small" />
-  }
-  if (row.profiles_pending) {
-    return <div className="avatar-placeholder avatar-placeholder--loading" />
   }
   return <div className="avatar-placeholder" />
 }
@@ -56,27 +54,6 @@ function LeaderboardRow({ row }) {
         {formatKd(row)}
       </td>
     </tr>
-  )
-}
-
-function TableSkeleton({ rows = 10 }) {
-  return (
-    <tbody>
-      {Array.from({ length: rows }, (_, i) => (
-        <tr key={i} className="leaderboard-skeleton-row">
-          <td><div className="skeleton-shimmer skeleton-cell skeleton-cell--sm" /></td>
-          <td>
-            <div className="player-cell">
-              <div className="avatar-placeholder avatar-placeholder--loading" />
-              <div className="skeleton-shimmer skeleton-cell skeleton-cell--lg" />
-            </div>
-          </td>
-          <td><div className="skeleton-shimmer skeleton-cell" /></td>
-          <td><div className="skeleton-shimmer skeleton-cell" /></td>
-          <td><div className="skeleton-shimmer skeleton-cell" /></td>
-        </tr>
-      ))}
-    </tbody>
   )
 }
 
@@ -185,9 +162,7 @@ export default function Leaderboard() {
       <div className="page-header-row">
         <div>
           <h1>Kill Leaderboard</h1>
-          <p className="page-desc">
-            Top 100 players ranked by kills.
-          </p>
+          <p className="page-desc">Top 100 players ranked by kills.</p>
         </div>
         <button className="btn btn-secondary" onClick={loadData} disabled={statsLoading}>
           {statsLoading ? 'Refreshing...' : 'Refresh'}
@@ -195,16 +170,18 @@ export default function Leaderboard() {
       </div>
 
       {profilesLoading && rows.length > 0 && (
-        <p className="leaderboard-status">Loading player names and avatars…</p>
+        <p className="leaderboard-status">Loading names…</p>
       )}
 
       {error && <p className="status error">{error}</p>}
 
       {!error && rows.length === 0 && !statsLoading && (
-        <p className="status">No players on the leaderboard yet. Play the game to get stats!</p>
+        <p className="status">No players on the leaderboard yet.</p>
       )}
 
-      {(statsLoading || rows.length > 0) && (
+      {statsLoading && <LoadingMark label="Loading leaderboard" />}
+
+      {!statsLoading && rows.length > 0 && (
         <div className="table-wrap">
           <table className="stats-table">
             <thead>
@@ -216,20 +193,16 @@ export default function Leaderboard() {
                 <th>K/D</th>
               </tr>
             </thead>
-            {statsLoading ? (
-              <TableSkeleton rows={12} />
-            ) : (
-              <tbody>
-                {visibleRows.map((row) => (
-                  <LeaderboardRow key={`${row.roblox_user_id}-${row.rank}`} row={row} />
-                ))}
-              </tbody>
-            )}
+            <tbody>
+              {visibleRows.map((row) => (
+                <LeaderboardRow key={`${row.roblox_user_id}-${row.rank}`} row={row} />
+              ))}
+            </tbody>
           </table>
-          {hasMalformed && !statsLoading && (
+          {hasMalformed && (
             <p className="malformed-legend">
               <MalformedIndicator variant="icon" />
-              Malformed entries have unreadable PlayerStore data.. stats shown are placeholders (0/0/0).
+              Malformed entries have unreadable data — stats shown are placeholders.
             </p>
           )}
         </div>
