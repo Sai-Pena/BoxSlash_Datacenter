@@ -62,7 +62,7 @@ git push origin main
 | Key | Value |
 |-----|--------|
 | `ROBLOX_API_KEY` | your Roblox API key (in quotes if it starts with `+`) |
-| `ROBLOX_UNIVERSE_ID` | `10333992559` |
+| `ROBLOX_UNIVERSE_ID` | `10674586084` |
 | `ROBLOX_DATASTORE_NAME` | `PlayerStore` |
 | `ALLOWED_ORIGINS` | `http://localhost:5173` (add Vercel URL after Step 3) |
 
