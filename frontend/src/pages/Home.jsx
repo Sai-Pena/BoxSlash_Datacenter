@@ -26,6 +26,10 @@ export default function Home() {
             <span className="home-nav-heading">Compare</span>
             <span className="home-nav-sub">Head-to-head</span>
           </Link>
+          <Link to="/feedback" className="home-nav-item">
+            <span className="home-nav-heading">Feedback</span>
+            <span className="home-nav-sub">Send a message</span>
+          </Link>
         </nav>
       </section>
 

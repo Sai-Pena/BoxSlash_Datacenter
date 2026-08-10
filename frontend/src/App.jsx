@@ -3,6 +3,7 @@ import Home from './pages/Home'
 import Leaderboard from './pages/Leaderboard'
 import PlayerLookup from './pages/PlayerLookup'
 import Compare from './pages/Compare'
+import Feedback from './pages/Feedback'
 
 function NavBar() {
   const location = useLocation()
@@ -24,6 +25,7 @@ function NavBar() {
           <Link to="/leaderboard" className={navClass('/leaderboard')}>Leaderboard</Link>
           <Link to="/lookup" className={navClass('/lookup')}>Profiles</Link>
           <Link to="/compare" className={navClass('/compare')}>Compare</Link>
+          <Link to="/feedback" className={navClass('/feedback')}>Feedback</Link>
         </nav>
       </div>
     </header>
@@ -40,10 +42,11 @@ export default function App() {
           <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/lookup" element={<PlayerLookup />} />
           <Route path="/compare" element={<Compare />} />
+          <Route path="/feedback" element={<Feedback />} />
         </Routes>
       </main>
       <footer className="footer">
-        not made by Roblox. made by Sai!! The owner of Box/Slash 
+        not made by Roblox. made by Sai!! The owner of Box/Slash
       </footer>
     </div>
   )
