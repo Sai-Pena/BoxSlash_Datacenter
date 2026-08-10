@@ -16,7 +16,7 @@ from dotenv import load_dotenv
 load_dotenv(Path(__file__).parent / ".env")
 
 BASE_URL = "https://apis.roblox.com/cloud/v2"
-UNIVERSE_ID = os.getenv("ROBLOX_UNIVERSE_ID", "10333992559")
+UNIVERSE_ID = os.getenv("ROBLOX_UNIVERSE_ID", "10674586084")
 DATASTORE_NAME = os.getenv("ROBLOX_DATASTORE_NAME", "PlayerStore")
 LEADERBOARD_LIMIT = 100
 
@@ -43,7 +43,7 @@ def _check_response_errors(response: httpx.Response) -> None:
     if response.status_code == 403:
         raise RuntimeError(
             "API key denied access. Add universe-datastores.objects:read scope "
-            "for universe 10333992559 in the credentials dashboard."
+            f"for universe {UNIVERSE_ID} in the credentials dashboard."
         )
     if response.status_code == 404:
         body = response.json() if response.content else {}
