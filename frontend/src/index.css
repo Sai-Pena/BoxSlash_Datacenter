@@ -7,18 +7,24 @@
 }
 
 :root {
-  --bg: #101010;
-  --text: #e4e4e4;
-  --muted: #888;
-  --faint: #555;
-  --line: #2a2a2a;
-  --accent: #d4654a;
-  --link: #a8a8a8;
+  --bg: #0f1114;
+  --text: #e6e6e6;
+  --muted: #8a8a8a;
+  --faint: #5a5a5a;
+  --line: #2c3038;
+  --accent: #e07055;
+  --accent-dim: #8a4a3a;
+  --good: #6aaa7a;
+  --bad: #b07070;
+  --link: #a0a8b8;
+  --content-max: 1280px;
 }
 
 body {
   font-family: 'Times New Roman', Times, serif;
-  background: var(--bg);
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -20%, #1a1520 0%, transparent 55%),
+    var(--bg);
   color: var(--text);
   min-height: 100vh;
 }
@@ -41,17 +47,18 @@ a:hover {
 
 /* Header — tab strip on a single rule */
 .header {
-  background: var(--bg);
+  background: rgba(15, 17, 20, 0.92);
   border-bottom: 1px solid var(--line);
   position: sticky;
   top: 0;
   z-index: 10;
+  backdrop-filter: blur(6px);
 }
 
 .header-inner {
-  max-width: 960px;
+  max-width: var(--content-max);
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 0 clamp(20px, 4vw, 48px);
   display: flex;
   align-items: stretch;
   justify-content: space-between;
@@ -115,10 +122,10 @@ a:hover {
 /* Main */
 .main {
   flex: 1;
-  max-width: 960px;
+  max-width: var(--content-max);
   width: 100%;
   margin: 0 auto;
-  padding: 36px 24px;
+  padding: 36px clamp(20px, 4vw, 48px);
 }
 
 .page h1 {
@@ -127,6 +134,7 @@ a:hover {
   margin-bottom: 6px;
   padding-bottom: 10px;
   border-bottom: 1px solid var(--line);
+  box-shadow: 0 1px 0 rgba(224, 112, 85, 0.22);
 }
 
 .page-desc,
@@ -411,7 +419,7 @@ a:hover {
 }
 
 .home-landing {
-  max-width: 480px;
+  max-width: 640px;
 }
 
 .home-title {
@@ -422,10 +430,11 @@ a:hover {
   font-weight: normal;
   border: none;
   padding: 0;
+  box-shadow: none;
 }
 
 .home-title-slash {
-  color: var(--faint);
+  color: var(--accent-dim);
   margin: 0 4px;
 }
 
@@ -443,6 +452,7 @@ a:hover {
   display: flex;
   flex-direction: column;
   border-top: 1px solid var(--line);
+  max-width: 720px;
 }
 
 .home-nav-item {
@@ -461,9 +471,10 @@ a:hover {
 }
 
 .home-nav-item:hover .home-nav-heading {
-  color: #fff;
+  color: var(--accent);
   text-decoration: underline;
   text-underline-offset: 4px;
+  text-decoration-color: var(--accent);
 }
 
 .home-nav-heading {
@@ -579,14 +590,18 @@ a:hover {
   align-items: center;
 }
 
-.kills-cell,
+.kills-cell {
+  font-weight: normal;
+  color: var(--good);
+}
+
 .kd-cell {
   font-weight: normal;
   color: var(--text);
 }
 
 .deaths-cell {
-  color: var(--muted);
+  color: var(--bad);
 }
 
 .top-1 td .rank-cell,
@@ -901,6 +916,88 @@ tr.top-1 .rank-cell {
 
 .compare-value--lose {
   color: var(--faint);
+}
+
+/* Feedback */
+.feedback-form {
+  max-width: 640px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  margin-top: 8px;
+  border-top: 1px solid var(--line);
+  padding-top: 24px;
+}
+
+.feedback-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.feedback-field label {
+  font-size: 0.75rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.feedback-field input,
+.feedback-field textarea {
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 1rem;
+  padding: 8px 0;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--line);
+  color: var(--text);
+  border-radius: 0;
+  width: 100%;
+  resize: vertical;
+}
+
+.feedback-field textarea {
+  min-height: 140px;
+  line-height: 1.45;
+}
+
+.feedback-field input:focus,
+.feedback-field textarea:focus {
+  outline: none;
+  border-bottom-color: var(--accent);
+}
+
+.feedback-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.feedback-note {
+  font-size: 0.85rem;
+  color: var(--faint);
+}
+
+.status.success {
+  color: var(--good);
+  border-color: rgba(106, 170, 122, 0.35);
+}
+
+.profile-summary-item:first-child .profile-summary-value {
+  color: var(--good);
+}
+
+.profile-summary-item:nth-child(2) .profile-summary-value {
+  color: var(--bad);
+}
+
+.profile-section-title {
+  color: var(--accent-dim);
+}
+
+.compare-section-title {
+  color: var(--accent-dim);
 }
 
 /* Footer */
