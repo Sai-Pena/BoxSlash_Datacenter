@@ -63,30 +63,3 @@ export function getLeaderboardProfiles(userIds) {
 export function getPlayer(username) {
   return apiGet(`/api/players/${encodeURIComponent(username)}`)
 }
-
-export async function sendFeedback({ name, contact, message }) {
-  let response
-  try {
-    response = await fetch(`${API_BASE}/api/feedback`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, contact, message }),
-    })
-  } catch {
-    throw new Error(backendError())
-  }
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}))
-    const detail = error.detail
-    throw new Error(
-      typeof detail === 'string'
-        ? detail
-        : Array.isArray(detail)
-          ? detail.map((d) => d.msg).join(', ')
-          : `Request failed (${response.status})`
-    )
-  }
-
-  return response.json()
-}

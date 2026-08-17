@@ -18,18 +18,8 @@ load_dotenv(Path(__file__).parent / ".env")
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
-import httpx
 
 import database as db
-
-FEEDBACK_EMAIL = os.getenv("FEEDBACK_EMAIL", "a2online.soulclock@gmail.com").strip()
-
-
-class FeedbackBody(BaseModel):
-    name: str = Field(..., min_length=1, max_length=120)
-    message: str = Field(..., min_length=10, max_length=4000)
-    contact: str = Field("", max_length=200)
 
 app = FastAPI(
     title="BoxSlash Stat Tracker API",
@@ -63,7 +53,6 @@ def root():
             "player": "GET /api/players/{username}",
             "leaderboard": "GET /api/leaderboard",
             "tracked": "GET /api/tracked",
-            "feedback": "POST /api/feedback",
         },
     }
 
@@ -128,46 +117,3 @@ async def leaderboard_profiles(ids: str = Query(..., description="Comma-separate
         raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"Roblox API error: {e}")
-
-
-@app.post("/api/feedback")
-async def submit_feedback(body: FeedbackBody):
-    """Forward feedback to the configured inbox email."""
-    name = body.name.strip()
-    message = body.message.strip()
-    contact = body.contact.strip()
-
-    if not name or not message:
-        raise HTTPException(status_code=400, detail="Name and message are required.")
-
-    payload = {
-        "name": name,
-        "message": message,
-        "contact": contact or "(none)",
-        "_subject": f"[BoxSlash Feedback] from {name}",
-        "_template": "table",
-    }
-
-    try:
-        async with httpx.AsyncClient(timeout=20.0) as client:
-            response = await client.post(
-                f"https://formsubmit.co/ajax/{FEEDBACK_EMAIL}",
-                json=payload,
-                headers={
-                    "Accept": "application/json",
-                    "Content-Type": "application/json",
-                },
-            )
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Could not reach mail service: {e}")
-
-    if response.status_code >= 400:
-        detail = "Failed to send feedback."
-        try:
-            data = response.json()
-            detail = data.get("message") or data.get("error") or detail
-        except Exception:
-            pass
-        raise HTTPException(status_code=502, detail=detail)
-
-    return {"ok": True, "message": "Feedback sent."}

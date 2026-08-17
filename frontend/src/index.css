@@ -919,64 +919,17 @@ tr.top-1 .rank-cell {
 }
 
 /* Feedback */
-.feedback-form {
-  max-width: 640px;
-  display: flex;
-  flex-direction: column;
-  gap: 22px;
+.feedback-mailto {
   margin-top: 8px;
+  padding-top: 20px;
   border-top: 1px solid var(--line);
-  padding-top: 24px;
+  font-size: 1.15rem;
 }
 
-.feedback-field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.feedback-field label {
-  font-size: 0.75rem;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  color: var(--faint);
-}
-
-.feedback-field input,
-.feedback-field textarea {
-  font-family: 'Times New Roman', Times, serif;
-  font-size: 1rem;
-  padding: 8px 0;
-  background: transparent;
-  border: none;
-  border-bottom: 1px solid var(--line);
-  color: var(--text);
-  border-radius: 0;
-  width: 100%;
-  resize: vertical;
-}
-
-.feedback-field textarea {
-  min-height: 140px;
-  line-height: 1.45;
-}
-
-.feedback-field input:focus,
-.feedback-field textarea:focus {
-  outline: none;
-  border-bottom-color: var(--accent);
-}
-
-.feedback-actions {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.feedback-note {
-  font-size: 0.85rem;
-  color: var(--faint);
+.feedback-mailto a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 4px;
 }
 
 .status.success {
